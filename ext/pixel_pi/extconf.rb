@@ -15,4 +15,4 @@ ws2811_files  = %w[
 ws2811_files.map! { |name| "#{ws2811_path}/#{name}" }
 FileUtils.cp(ws2811_files, pixel_pi_path)
 
-create_makefile("neo_pixels/leds")
+create_makefile("pixel_pi/leds")
