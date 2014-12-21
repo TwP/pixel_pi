@@ -8,8 +8,8 @@ ws2811_files  = %w[
   gpio.h
   pwm.h
   ws2811.h
-  leds.c
   dma.c
+  pwm.c
   ws2811.c
 ]
 ws2811_files.map! { |name| "#{ws2811_path}/#{name}" }
