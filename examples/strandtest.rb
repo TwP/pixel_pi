@@ -1,7 +1,13 @@
-lib = File.expand_path('../../lib', __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "rubygems"
 
-require "pixel_pi"
+begin
+  require "pixel_pi"
+rescue LoadError
+  lib = File.expand_path('../../lib', __FILE__)
+  raise if $LOAD_PATH.include?(lib)
+  $LOAD_PATH.unshift(lib)
+  retry
+end
 
 LED_COUNT      = 8       # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
