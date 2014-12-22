@@ -3,6 +3,10 @@
 
 #define RGB2COLOR(r,g,b) ((((r) & 0xff) << 16) | (((g) & 0xff) << 8) | ((b) & 0xff))
 
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 VALUE mPixelPi;
 VALUE cLeds;
 VALUE ePixelPiError;
@@ -69,9 +73,9 @@ pp_leds_struct( VALUE self )
 static int
 pp_rgb_to_color( VALUE red, VALUE green, VALUE blue )
 {
-  int r = NUM2INT(red);
-  int g = NUM2INT(green);
-  int b = NUM2INT(blue);
+  int r = FIX2INT(red);
+  int g = FIX2INT(green);
+  int b = FIX2INT(blue);
   return RGB2COLOR(r, g, b);
 }
 
@@ -110,7 +114,7 @@ pp_leds_initialize( int argc, VALUE* argv, VALUE self )
 
   /* get the number of pixels */
   if (TYPE(length) == T_FIXNUM) {
-    ledstring->channel[0].count = NUM2INT(length);
+    ledstring->channel[0].count = FIX2INT(length);
     if (ledstring->channel[0].count < 0) {
       rb_raise( rb_eArgError, "length cannot be negative: %d", ledstring->channel[0].count );
     }
@@ -120,7 +124,7 @@ pp_leds_initialize( int argc, VALUE* argv, VALUE self )
 
   /* get the GPIO number */
   if (TYPE(gpio) == T_FIXNUM) {
-    ledstring->channel[0].gpionum = NUM2INT(gpio);
+    ledstring->channel[0].gpionum = FIX2INT(gpio);
     if (ledstring->channel[0].gpionum < 0) {
       rb_raise( rb_eArgError, "GPIO cannot be negative: %d", ledstring->channel[0].gpionum );
     }
@@ -135,7 +139,7 @@ pp_leds_initialize( int argc, VALUE* argv, VALUE self )
     tmp = rb_hash_lookup( opts, sym_dma );
     if (!NIL_P(tmp)) {
       if (TYPE(tmp) == T_FIXNUM) {
-        ledstring->dmanum = NUM2INT(tmp);
+        ledstring->dmanum = FIX2INT(tmp);
         if (ledstring->dmanum < 0) {
           rb_raise( rb_eArgError, "DMA channel cannot be negative: %d", ledstring->dmanum );
         }
@@ -148,7 +152,7 @@ pp_leds_initialize( int argc, VALUE* argv, VALUE self )
     tmp = rb_hash_lookup( opts, sym_frequency );
     if (!NIL_P(tmp)) {
       if (TYPE(tmp) == T_FIXNUM) {
-        ledstring->freq = NUM2UINT(tmp);
+        ledstring->freq = FIX2UINT(tmp);
       } else {
         rb_raise( rb_eTypeError, "frequency must be a number: %s", rb_obj_classname(tmp) );
       }
@@ -158,7 +162,7 @@ pp_leds_initialize( int argc, VALUE* argv, VALUE self )
     tmp = rb_hash_lookup( opts, sym_brightness );
     if (!NIL_P(tmp)) {
       if (TYPE(tmp) == T_FIXNUM) {
-        ledstring->channel[0].brightness = (NUM2UINT(tmp) & 0xff);
+        ledstring->channel[0].brightness = (FIX2UINT(tmp) & 0xff);
         if (ledstring->channel[0].brightness < 0) {
           rb_raise( rb_eArgError, "brightness cannot be negative: %d", ledstring->channel[0].brightness );
         }
@@ -273,7 +277,7 @@ static VALUE
 pp_leds_brightness_set( VALUE self, VALUE brightness )
 {
   ws2811_t *ledstring = pp_leds_struct( self );
-  ledstring->channel[0].brightness = (NUM2UINT(brightness) & 0xff);
+  ledstring->channel[0].brightness = (FIX2UINT(brightness) & 0xff);
   return brightness;
 }
 
@@ -308,15 +312,10 @@ pp_leds_clear( VALUE self )
 {
   ws2811_t *ledstring = pp_leds_struct( self );
   ws2811_channel_t channel = ledstring->channel[0];
-  int ii, resp;
+  int ii;
 
   for (ii=0; ii<channel.count; ii++) {
     channel.leds[ii] = 0;
-  }
-
-  resp = ws2811_render( ledstring );
-  if (resp < 0) {
-    rb_raise( rb_eRuntimeError, "PixelPi::Leds failed to render: %d", resp );
   }
 
   return self;
@@ -325,7 +324,11 @@ pp_leds_clear( VALUE self )
 /* call-seq:
  *    close
  *
- * FIXME
+ * Shutdown the NeoPixels connected to the DMA / PWM channel. After this method
+ * the current PixelPi::Leds instance will no longer be usable; a new instance
+ * will need to be created. This method is automatically invoked when the
+ * instance is deallcoated by the Ruby garbage collector. It does not need to be
+ * explicitly invoked.
  *
  * Returns `nil`.
  */
@@ -350,7 +353,7 @@ pp_leds_get_pixel_color( VALUE self, VALUE num )
   ws2811_t *ledstring = pp_leds_struct( self );
   ws2811_channel_t channel = ledstring->channel[0];
 
-  int n = NUM2INT(num);
+  int n = FIX2INT(num);
   if (n < 0 || n >= channel.count) {
     rb_raise( rb_eIndexError, "index %d is outside of LED range: 0...%d", n, channel.count-1 );
   }
@@ -372,9 +375,9 @@ pp_leds_set_pixel_color( VALUE self, VALUE num, VALUE color )
   ws2811_t *ledstring = pp_leds_struct( self );
   ws2811_channel_t channel = ledstring->channel[0];
 
-  int n = NUM2INT(num);
+  int n = FIX2INT(num);
   if (n >= 0 && n < channel.count) {
-    channel.leds[n] = NUM2INT(color);
+    channel.leds[n] = FIX2UINT(color);
   }
   return self;
 }
@@ -460,10 +463,154 @@ pp_leds_replace( VALUE self, VALUE ary )
   int ii, min;
 
   Check_Type( ary, T_ARRAY );
-  min = (channel.count < RARRAY_LEN(ary) ? channel.count : RARRAY_LEN(ary));
+  min = MIN(channel.count, RARRAY_LEN(ary));
 
   for (ii=0; ii<min; ii++) {
-    channel.leds[ii] = FIX2INT(rb_ary_entry( ary, ii ));
+    channel.leds[ii] = FIX2UINT(rb_ary_entry( ary, ii ));
+  }
+
+  return self;
+}
+
+static void
+pp_leds_reverse( ws2811_led_t *p1, ws2811_led_t *p2 )
+{
+  while (p1 < p2) {
+    ws2811_led_t tmp = *p1;
+    *p1++ = *p2;
+    *p2-- = tmp;
+  }
+}
+
+/* call-seq:
+ *    reverse
+ *
+ * Reverse the order of the LED colors.
+ *
+ * Returns this PixelPi::Leds instance.
+ */
+static VALUE
+pp_leds_reverse_m( VALUE self )
+{
+  ws2811_t *ledstring = pp_leds_struct( self );
+  ws2811_channel_t channel = ledstring->channel[0];
+  ws2811_led_t *ptr = channel.leds;
+  int len = channel.count;
+
+  if (--len > 0) pp_leds_reverse( ptr, ptr + len );
+
+  return self;
+}
+
+/* call-seq:
+ *   rotate( count = 1 )
+ *
+ * Rotates the LED colors in place so that the color at `count` comes first. If
+ * `count` is negative then it rotates in the opposite direction, starting from
+ * the end of the LEDs where -1 is the last LED.
+ *
+ * Returns this PixelPi::Leds instance.
+ */
+static VALUE
+pp_leds_rotate( int argc, VALUE* argv, VALUE self )
+{
+  ws2811_t *ledstring = pp_leds_struct( self );
+  ws2811_channel_t channel = ledstring->channel[0];
+  int cnt = 1;
+
+  switch (argc) {
+    case 1: cnt = FIX2INT(argv[0]);
+    case 0: break;
+    default: rb_scan_args( argc, argv, "01", NULL );
+  }
+
+  if (cnt != 0) {
+    ws2811_led_t *ptr = channel.leds;
+    int len = channel.count;
+    cnt = (cnt < 0) ? (len - (~cnt % len) - 1) : (cnt % len);
+
+    if (len > 0 && cnt > 0) {
+      --len;
+      if (cnt < len) pp_leds_reverse( ptr + cnt, ptr + len );
+      if (--cnt > 0) pp_leds_reverse( ptr, ptr + cnt );
+      if (len > 0) pp_leds_reverse( ptr, ptr + len );
+    }
+  }
+
+  return self;
+}
+
+/* call-seq:
+ *    fill( color )
+ *    fill( color, start [, length] )
+ *    fill( color, range )
+ *    fill { |index| block }
+ *    fill( start [, length] ) { |index| block }
+ *    fill( range ) { |index| block }
+ *
+ * Set the selected LEDs to the given `color`. The `color` msut be given as a
+ * 24-bit RGB value. You can also supply a block that receives an LED index and
+ * returns a 24-bit RGB color.
+ *
+ * Examples:
+ *    leds.fill( 0x00FF00 )
+ *    leds.fill( 0xFF0000, 2, 2 )
+ *    leds.fill( 0x0000FF, (4...8) )
+ *    leds.fill { |i| 256 << i }
+ *
+ * Returns this PixelPi::Leds instance.
+ */
+static VALUE
+pp_leds_fill( int argc, VALUE* argv, VALUE self )
+{
+  ws2811_t *ledstring = pp_leds_struct( self );
+  ws2811_channel_t channel = ledstring->channel[0];
+  ws2811_led_t color = 0;
+
+  VALUE item, arg1, arg2, v;
+  long ii, beg = 0, end = 0, len = 0;
+  int block_p = 0;
+
+  if (rb_block_given_p()) {
+    block_p = 1;
+    rb_scan_args( argc, argv, "02", &arg1, &arg2 );
+    argc += 1;
+  } else {
+    rb_scan_args( argc, argv, "12", &item, &arg1, &arg2 );
+    color = FIX2UINT(item);
+  }
+
+  switch (argc) {
+    case 1:
+      beg = 0;
+      len = channel.count;
+      break;
+    case 2:
+      if (rb_range_beg_len(arg1, &beg, &len, channel.count, 1)) {
+        break;
+      }
+      /* fall through */
+    case 3:
+      beg = NIL_P(arg1) ? 0 : NUM2LONG(arg1);
+      if (beg < 0) {
+        beg = channel.count + beg;
+        if (beg < 0) beg = 0;
+      }
+      len = NIL_P(arg2) ? channel.count - beg : NUM2LONG(arg2);
+      break;
+  }
+
+  if (len < 0) return self;
+
+  end = beg + len;
+  end = MIN((long) channel.count, end);
+
+  for (ii=beg; ii<end; ii++) {
+    if (block_p) {
+      v = rb_yield(INT2NUM(ii));
+      color = FIX2UINT(v);
+    }
+    channel.leds[ii] = color;
   }
 
   return self;
@@ -512,6 +659,9 @@ void Init_leds( )
   rb_define_method( cLeds, "set_pixel",   pp_leds_set_pixel_color2, -1 );
   rb_define_method( cLeds, "to_a",        pp_leds_to_a,              0 );
   rb_define_method( cLeds, "replace",     pp_leds_replace,           1 );
+  rb_define_method( cLeds, "reverse",     pp_leds_reverse_m,         0 );
+  rb_define_method( cLeds, "rotate",      pp_leds_rotate,           -1 );
+  rb_define_method( cLeds, "fill",        pp_leds_fill,             -1 );
 
   rb_define_module_function( mPixelPi, "Color", pp_color, 3 );
 
