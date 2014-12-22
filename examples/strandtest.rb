@@ -54,11 +54,11 @@ module StrandTest
     spacing    = opts.fetch(:spacing, 3)
 
     iterations.times do
-      spacing.times do |jj|
-        (0...self.length).step(spacing) { |ii| self[ii+jj] = color }
+      spacing.times do |sp|
+        self.clear
+        (sp...self.length).step(spacing) { |ii| self[ii] = color }
         self.show
         sleep(wait_ms / 1000.0)
-        (0...self.length).step(spacing) { |ii| self[ii+jj] = 0 }
       end
     end
 
@@ -71,6 +71,7 @@ module StrandTest
   #
   # Returns a 24-bit RGB color value.
   def wheel( pos )
+    pos = pos & 0xff
     if pos < 85
       return PixelPi::Color(pos * 3, 255 - pos * 3, 0)
     elsif pos < 170
@@ -94,7 +95,7 @@ module StrandTest
     iterations = opts.fetch(:iterations, 1)
 
     (0...256*iterations).each do |jj|
-      self.length.times { |ii| self[ii] = wheel((ii+jj) & 0xff) }
+      self.fill { |ii| wheel(ii+jj) }
       self.show
       sleep(wait_ms / 1000.0)
     end
@@ -114,7 +115,7 @@ module StrandTest
     iterations = opts.fetch(:iterations, 5)
 
     (0...256*iterations).each do |jj|
-      self.length.times { |ii| self[ii] = wheel(((ii * 256 / self.length) + jj) & 0xff) }
+      self.fill { |ii| wheel((ii * 256 / self.length) + jj) }
       self.show
       sleep(wait_ms / 1000.0)
     end
@@ -135,10 +136,10 @@ module StrandTest
 
     256.times do |jj|
       spacing.times do |sp|
-        (0...self.length).step(spacing) { |ii| self[ii+sp] = wheel((ii+jj) % 255) }
+        self.clear
+        (sp...self.length).step(spacing) { |ii| self[ii] = wheel((ii+jj) % 255) }
         self.show
         sleep(wait_ms / 1000.0)
-        (0...self.length).step(spacing) { |ii| self[ii+sp] = 0 }
       end
     end
 
@@ -158,7 +159,7 @@ strip = PixelPi::Leds.new \
 strip.extend StrandTest
 
 trap("SIGINT") do
-  strip.clear
+  strip.clear.show
   strip.close  # not explicitly needed - the finalizer will gracefully shutdown
   exit         # the PWM channel and release the DMA memory
 end
