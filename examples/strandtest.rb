@@ -159,10 +159,10 @@ strip = PixelPi::Leds.new \
 strip.extend StrandTest
 
 trap("SIGINT") do
-  strip.clear.show
-  strip.close  # not explicitly needed - the finalizer will gracefully shutdown
-  exit         # the PWM channel and release the DMA memory
-end
+  strip.clear.show  # turn off all the LEDs
+  strip.close       # close is not explicitly needed - the finalizer will
+  exit              # gracefully shutdown the PWM channel and release the
+end                 # DMA memory
 
 STDOUT.puts "Press Ctrl-C to quit."
 
