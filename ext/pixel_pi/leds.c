@@ -416,6 +416,60 @@ pp_leds_set_pixel_color2( int argc, VALUE* argv, VALUE self )
 }
 
 /* call-seq:
+ *    to_a
+ *
+ * Takes the current list of 24-bit RGB values stored in the LED strings and
+ * returns them as an Array. These colors might not be actively displayed; it
+ * all depends if `show` has been called on the PixelPi::Leds instance.
+ *
+ * Returns an Array of 24-bit RGB values.
+ */
+static VALUE
+pp_leds_to_a( VALUE self )
+{
+  ws2811_t *ledstring = pp_leds_struct( self );
+  ws2811_channel_t channel = ledstring->channel[0];
+  int ii;
+  VALUE ary;
+
+  ary = rb_ary_new2( channel.count );
+  for (ii=0; ii<channel.count; ii++) {
+    rb_ary_push( ary, INT2NUM(channel.leds[ii]) );
+  }
+
+  return ary;
+}
+
+/* call-seq:
+ *    replace( ary )
+ *
+ * Replace the LED colors with the 24-bit RGB color values found in the `ary`.
+ * If the `ary` is longer than the LED string then the extra color values will
+ * be ignored. If the `ary` is shorter than the LED string then only the LEDS
+ * up to `ary.length` will be changed.
+ *
+ * You must call `show` for the new colors to be displayed.
+ *
+ * Returns this PixelPi::Leds instance.
+ */
+static VALUE
+pp_leds_replace( VALUE self, VALUE ary )
+{
+  ws2811_t *ledstring = pp_leds_struct( self );
+  ws2811_channel_t channel = ledstring->channel[0];
+  int ii, min;
+
+  Check_Type( ary, T_ARRAY );
+  min = (channel.count < RARRAY_LEN(ary) ? channel.count : RARRAY_LEN(ary));
+
+  for (ii=0; ii<min; ii++) {
+    channel.leds[ii] = FIX2INT(rb_ary_entry( ary, ii ));
+  }
+
+  return self;
+}
+
+/* call-seq:
  *    PixelPi::Color(red, green, blue)  #=> 24-bit color
  *
  * Given a set of RGB values return a single 24-bit color value. The RGB values
@@ -456,6 +510,8 @@ void Init_leds( )
   rb_define_method( cLeds, "[]",          pp_leds_get_pixel_color,   1 );
   rb_define_method( cLeds, "[]=",         pp_leds_set_pixel_color,   2 );
   rb_define_method( cLeds, "set_pixel",   pp_leds_set_pixel_color2, -1 );
+  rb_define_method( cLeds, "to_a",        pp_leds_to_a,              0 );
+  rb_define_method( cLeds, "replace",     pp_leds_replace,           1 );
 
   rb_define_module_function( mPixelPi, "Color", pp_color, 3 );
 
