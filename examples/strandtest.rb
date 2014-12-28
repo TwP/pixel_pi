@@ -145,7 +145,6 @@ module StrandTest
 
     self
   end
-
 end
 
 
