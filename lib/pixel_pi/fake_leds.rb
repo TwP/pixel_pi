@@ -46,7 +46,7 @@ module PixelPi
 
     attr_reader :gpio, :dma, :frequency, :invert, :brightness
 
-    def_delegators :@leds, :length, :[], :reverse, :rotate
+    def_delegators :@leds, :length, :[]
 
     # Set the pixel brightness. This is a value between 0 and 255. All pixels will
     # be scaled by this value. The hue is not affected; only the luminosity is
@@ -127,6 +127,24 @@ module PixelPi
       @leds.length.times do |ii|
         @leds[ii] = Integer(ary[ii])
       end
+      self
+    end
+
+    # Reverse the order of the LED colors.
+    #
+    # Returns this PixelPi::Leds instance.
+    def reverse
+      @leds.reverse
+      self
+    end
+
+    # Rotates the LED colors in place so that the color at `count` comes first. If
+    # `count` is negative then it rotates in the opposite direction, starting from
+    # the end of the LEDs where -1 is the last LED.
+    #
+    # Returns this PixelPi::Leds instance.
+    def rotate( *args )
+      @leds.rotate(*args)
       self
     end
 
