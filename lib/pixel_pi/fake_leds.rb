@@ -134,7 +134,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def reverse
-      @leds.reverse
+      @leds.reverse!
       self
     end
 
@@ -144,7 +144,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def rotate( *args )
-      @leds.rotate(*args)
+      @leds.rotate!(*args)
       self
     end
 
