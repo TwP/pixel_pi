@@ -6,7 +6,10 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 spec = Gem::Specification.load("pixel_pi.gemspec")
 
-Gem::PackageTask.new(spec)
+Gem::PackageTask.new(spec) do |pkg|
+  pkg.need_zip = false
+  pkg.need_tar = false
+end
 
 Rake::ExtensionTask.new("pixel_pi", spec) do |ext|
   ext.name    = "leds"
