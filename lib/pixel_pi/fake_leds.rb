@@ -38,7 +38,10 @@ module PixelPi
       @brightness = options.fetch(:brightness, 255)
       @debug      = options.fetch(:debug, false)
 
-      require "rainbow" if @debug
+      if @debug
+        require "rainbow"
+        @debug = "◉ " unless @debug.is_a?(String) && !@debug.empty?
+      end
     end
 
     attr_reader :gpio, :dma, :frequency, :invert, :brightness
@@ -58,7 +61,7 @@ module PixelPi
     # for the fake LEDs.
     def show
       if @debug
-        ary = @leds.map { |value| Rainbow("◉ ").color(*to_rgb(value)) }
+        ary = @leds.map { |value| Rainbow(@debug).color(*to_rgb(value)) }
         $stdout.print "\r#{ary.join}"
       end
       self
