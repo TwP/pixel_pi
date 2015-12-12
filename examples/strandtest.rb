@@ -153,7 +153,8 @@ strip = PixelPi::Leds.new \
     :frequency  => LED_FREQ_HZ,
     :dma        => LED_DMA,
     :brightness => LED_BRIGHTNESS,
-    :invert     => LED_INVERT
+    :invert     => LED_INVERT,
+    :debug      => true
 
 strip.extend StrandTest
 
