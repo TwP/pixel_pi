@@ -19,5 +19,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = %w{lib}
 
   spec.add_development_dependency "rake-compiler", "~> 0.9"
+  spec.add_development_dependency "rainbow",       "~> 2.0"
 end
-
