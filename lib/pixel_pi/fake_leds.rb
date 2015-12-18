@@ -10,6 +10,9 @@ module PixelPi
     ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF)
   end
 
+  # PixelPi::Error class
+  Error = StandardError.new
+
   class Leds
     extend Forwardable
 
@@ -60,6 +63,7 @@ module PixelPi
     # Update the display with the data from the LED buffer. This is a noop method
     # for the fake LEDs.
     def show
+      closed!
       if @debug
         ary = @leds.map { |value| Rainbow(@debug).color(*to_rgb(value)) }
         $stdout.print "\r#{ary.join}"
@@ -70,6 +74,7 @@ module PixelPi
     # Clear the display. This will set all values in the LED buffer to zero, and
     # then update the display. All pixels will be turned off by this method.
     def clear
+      closed!
       @leds.fill 0
       self
     end
@@ -90,6 +95,7 @@ module PixelPi
     #
     # Returns the 24-bit RGB color value.
     def []=( num, value )
+      closed!
       if (num < 0 || num >= @leds.length)
         raise IndexError, "index #{num} is outside of LED range: 0...#{@leds.length-1}"
       end
@@ -112,6 +118,7 @@ module PixelPi
     #
     # Returns an Array of 24-bit RGB values.
     def to_a
+      closed!
       @leds.dup
     end
 
@@ -124,6 +131,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def replace( ary )
+      closed!
       @leds.length.times do |ii|
         @leds[ii] = Integer(ary[ii])
       end
@@ -134,6 +142,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def reverse
+      closed!
       @leds.reverse!
       self
     end
@@ -144,6 +153,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def rotate( *args )
+      closed!
       @leds.rotate!(*args)
       self
     end
@@ -160,6 +170,7 @@ module PixelPi
     #
     # Returns this PixelPi::Leds instance.
     def fill( *args )
+      closed!
       if block_given?
         @leds.fill do |ii|
           value = yield(ii)
@@ -190,6 +201,10 @@ module PixelPi
         (((color >>  8) & 0xFF) * scale) >> 8,
         (( color        & 0xFF) * scale) >> 8
       ]
+    end
+
+    def closed!
+      raise(::PixelPi::Error, "Leds are not initialized") if @leds.nil?
     end
   end
 end
