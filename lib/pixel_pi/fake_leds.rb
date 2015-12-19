@@ -11,7 +11,7 @@ module PixelPi
   end
 
   # PixelPi::Error class
-  Error = StandardError.new
+  Error = Class.new(StandardError)
 
   class Leds
     extend Forwardable
